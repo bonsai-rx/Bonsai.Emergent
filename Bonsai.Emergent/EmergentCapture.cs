@@ -47,27 +47,63 @@ namespace Bonsai.Emergent
                     var fMax = camera.GetUInt32Max("FrameRate");
                     Console.WriteLine("FrameRate Max: \t\t{0}", fMax);
 
-                    var frame = new CEmergentFrameDotNet();
+                    const int allocatedFrameCount = 30;
+                    var buffers = new CEmergentFrameDotNet[allocatedFrameCount];
 
                     // Acqusition loop
                     try
                     {
                         using (var cancellation = cancellationToken.Register(() => { camera.ExecuteCommand("AcquisitionStop"); }))
                         {
+                            camera.OpenStream();
+
+                            // set up acquisition buffer
+                            for (int i = 0; i < allocatedFrameCount; i++)
+                            {
+                                buffers[i] = new CEmergentFrameDotNet();
+                                buffers[i].PixelFormat = CEmergentFrameDotNet.EPixelFormat.EUNPACK_PIX_MONO8;
+                                buffers[i].Width = wMax;
+                                buffers[i].Height = hMax;
+
+                                if (camera.AllocateFrameBuffer(buffers[i], CEmergentFrameDotNet.EFRAME_BUFFER_TYPE.EEVT_FRAME_BUFFER_ZERO_COPY) != EmergentErrorsDotNet.EVT_SUCCESS)
+                                {
+                                    break;
+                                }
+                                if (camera.QueueFrameBuffer(buffers[i]) != EmergentErrorsDotNet.EVT_SUCCESS)
+                                {
+                                    break;
+                                }
+                            }
+
+                            camera.ExecuteCommand("AcquisitionStart");
+
+                            var frameTemp = new CEmergentFrameDotNet();
                             while (!cancellationToken.IsCancellationRequested)
                             {
-                                // get images etc.
-
-                                // placeholder
-                                var error = camera.WaitforFrame(frame, 1);
-                                //Console.WriteLine(error);
-                                observer.OnNext(frame);
+                                //var result = camera.WaitforFrame(frameTemp, -1);
+                                //if (result == EmergentErrorsDotNet.EVT_SUCCESS)
+                                //{
+                                //    observer.OnNext(frameTemp);
+                                //}
+                                //camera.QueueFrameBuffer(frameTemp);
                             };
                         }
                     }
                     catch (Exception ex) { observer.OnError(ex); }
                     finally
                     {
+                        camera.ExecuteCommand("AcquisitionStop");
+
+                        for (int i = 0; i < allocatedFrameCount; i++)
+                        {
+                            camera.ReleaseFrameBuffer(buffers[i]);
+                        }
+
+                        //if (frameConvert != null)
+                        //{
+                        //    camera.ReleaseFrameBuffer(frameConvert);
+                        //}
+
                         camera.CloseStream();
                         camera.Close();
                     }
