@@ -29,30 +29,40 @@ namespace Bonsai.Emergent
 
                     try
                     {
+                        Console.WriteLine("Attempting open camera");
                         camera.Open(deviceInfoList[Index]);
+                        Console.WriteLine("Opened camera");
                     }
                     catch (Exception ex) { observer.OnError(ex); }
 
                     var frame = new CEmergentFrameDotNet();
 
                     // Acqusition loop
-                    using (var cancellation =  cancellationToken.Register(() => { camera.ExecuteCommand("AcquisitionStop"); }))
+                    try
                     {
-                        while (!cancellationToken.IsCancellationRequested)
+                        using (var cancellation = cancellationToken.Register(() => { camera.ExecuteCommand("AcquisitionStop"); }))
                         {
-                            // get images etc.
-
-                            // placeholder
-                            try
+                            while (!cancellationToken.IsCancellationRequested)
                             {
+                                // get images etc.
+
+                                // placeholder
                                 var error = camera.WaitforFrame(frame, 1);
                                 Console.WriteLine(error);
                                 observer.OnNext(frame);
-                            }
-                            catch (Exception ex) { observer.OnError(ex); }
-                        };
+                            };
+                        }
                     }
-                });
+                    catch (Exception ex) { observer.OnError(ex); }
+                    finally
+                    {
+                        camera.CloseStream();
+                        camera.Close();
+                    }
+                },
+                cancellationToken,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
             });
         }
     }
