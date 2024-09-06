@@ -12,10 +12,10 @@ namespace Bonsai.Emergent
 {
     public class EmergentCapture : Source<CEmergentFrameDotNet>
     {
-        public int Index { get; set; }
+        //public int Index { get; set; }
 
-        //[TypeConverter(typeof(CameraIdConverter))]
-        //public string CameraId { get; set; }
+        [TypeConverter(typeof(CameraIdConverter))]
+        public string SerialNumber { get; set; }
 
         public override IObservable<CEmergentFrameDotNet> Generate()
         {
@@ -31,7 +31,7 @@ namespace Bonsai.Emergent
                     try
                     {
                         Console.WriteLine("Attempting open camera");
-                        camera.Open(deviceInfoList[Index]);
+                        camera.Open(deviceInfoList.Where(x => x.SerialNumber == SerialNumber).FirstOrDefault());
                         Console.WriteLine("Opened camera");
                     }
                     catch (Exception ex) { observer.OnError(ex); }
