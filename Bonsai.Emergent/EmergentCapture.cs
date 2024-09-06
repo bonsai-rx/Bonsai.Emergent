@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Bonsai.Reactive;
 using Emergent;
 
 namespace Bonsai.Emergent
@@ -21,7 +22,7 @@ namespace Bonsai.Emergent
             return Observable.Create<CEmergentFrameDotNet>((observer, cancellationToken) =>
             {
                 return Task.Factory.StartNew(async () => {
-                    // Configuration
+                    // Configuration - open camera
                     List<CGigEVisionDeviceInfoDotNet> deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
                     CEmergentCameraDotNet.ListDevices(deviceInfoList);
 
@@ -34,6 +35,17 @@ namespace Bonsai.Emergent
                         Console.WriteLine("Opened camera");
                     }
                     catch (Exception ex) { observer.OnError(ex); }
+
+                    // Configuration - camera settings
+                    string pixelFormatS = camera.GetEnum("PixelFormat");
+                    Console.WriteLine("Pixel format: {0}", pixelFormatS);
+
+                    var wMax = camera.GetUInt32Max("Width");
+                    var hMax = camera.GetUInt32Max("Height");
+                    Console.WriteLine("Resolution: {0} x {1}", wMax, hMax);
+
+                    var fMax = camera.GetUInt32Max("FrameRate");
+                    Console.WriteLine("FrameRate Max: \t\t{0}", fMax);
 
                     var frame = new CEmergentFrameDotNet();
 
@@ -48,7 +60,7 @@ namespace Bonsai.Emergent
 
                                 // placeholder
                                 var error = camera.WaitforFrame(frame, 1);
-                                Console.WriteLine(error);
+                                //Console.WriteLine(error);
                                 observer.OnNext(frame);
                             };
                         }
