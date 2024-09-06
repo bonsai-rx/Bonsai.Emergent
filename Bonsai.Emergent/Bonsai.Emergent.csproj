@@ -11,7 +11,7 @@
     <PackageIcon></PackageIcon>
     <PackageOutputPath></PackageOutputPath>
     <PackageTags>Bonsai Rx Bonsai.Emergent</PackageTags>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net481</TargetFramework>
     <Features>strict</Features>
     <Version>0.1.0</Version>
   </PropertyGroup>
