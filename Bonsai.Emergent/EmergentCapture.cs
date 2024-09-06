@@ -2,20 +2,58 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Emergent;
 
 namespace Bonsai.Emergent
 {
-    public class EmergentCapture : Source<int>
+    public class EmergentCapture : Source<CEmergentFrameDotNet>
     {
-        [TypeConverter(typeof(CameraIdConverter))]
-        public string CameraId { get; set; }
+        public int Index { get; set; }
 
-        public override IObservable<int> Generate()
+        //[TypeConverter(typeof(CameraIdConverter))]
+        //public string CameraId { get; set; }
+
+        public override IObservable<CEmergentFrameDotNet> Generate()
         {
-            throw new NotImplementedException();
+            return Observable.Create<CEmergentFrameDotNet>((observer, cancellationToken) =>
+            {
+                return Task.Factory.StartNew(async () => {
+                    // Configuration
+                    List<CGigEVisionDeviceInfoDotNet> deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
+                    CEmergentCameraDotNet.ListDevices(deviceInfoList);
+
+                    var camera = new CEmergentCameraDotNet();
+
+                    try
+                    {
+                        camera.Open(deviceInfoList[Index]);
+                    }
+                    catch (Exception ex) { observer.OnError(ex); }
+
+                    var frame = new CEmergentFrameDotNet();
+
+                    // Acqusition loop
+                    using (var cancellation =  cancellationToken.Register(() => { camera.ExecuteCommand("AcquisitionStop"); }))
+                    {
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            // get images etc.
+
+                            // placeholder
+                            try
+                            {
+                                var error = camera.WaitforFrame(frame, 1);
+                                Console.WriteLine(error);
+                                observer.OnNext(frame);
+                            }
+                            catch (Exception ex) { observer.OnError(ex); }
+                        };
+                    }
+                });
+            });
         }
     }
 }
