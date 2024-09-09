@@ -17,12 +17,24 @@ namespace Bonsai.Emergent
         [TypeConverter(typeof(CameraIdConverter))]
         public string SerialNumber { get; set; }
 
-        public CEmergentFrameDotNet.EPixelFormat PixelFormat { get; set; }
+        public CEmergentFrameDotNet.EPixelFormat PixelFormat { get; set; } = CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO8;
 
         void CloseCameraStream(CEmergentCameraDotNet camera)
         {
-            Console.WriteLine("Attempting close camera");
             camera.ExecuteCommand("AcquisitionStop");
+
+            camera.CloseStream();
+            camera.Close();
+        }
+
+        void CloseCameraStream(CEmergentCameraDotNet camera, CEmergentFrameDotNet[] buffer)
+        {
+            camera.ExecuteCommand("AcquisitionStop");
+
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                camera.ReleaseFrameBuffer(buffer[i]);
+            }
 
             camera.CloseStream();
             camera.Close();
@@ -32,7 +44,7 @@ namespace Bonsai.Emergent
         {
             return Observable.Create<CEmergentFrameDotNet>((observer, cancellationToken) =>
             {
-                return Task.Factory.StartNew(async () => {
+                return Task.Factory.StartNew(() => {
                     // Configuration - open camera
                     List<CGigEVisionDeviceInfoDotNet> deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
                     CEmergentCameraDotNet.ListDevices(deviceInfoList);
@@ -48,6 +60,7 @@ namespace Bonsai.Emergent
                     catch (Exception ex) { observer.OnError(ex); }
 
                     // Configuration - camera settings
+                    camera.SetEnumByString("PixelFormat", EmergentUtils.GetPixelEnumString(PixelFormat));
                     string pixelFormatS = camera.GetEnum("PixelFormat");
                     Console.WriteLine("Pixel format: {0}", pixelFormatS);
 
@@ -72,7 +85,7 @@ namespace Bonsai.Emergent
                             for (int i = 0; i < allocatedFrameCount; i++)
                             {
                                 buffers[i] = new CEmergentFrameDotNet();
-                                buffers[i].PixelFormat = CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO8;
+                                buffers[i].PixelFormat = PixelFormat;
                                 buffers[i].Width = wMax;
                                 buffers[i].Height = hMax;
 
@@ -107,20 +120,7 @@ namespace Bonsai.Emergent
                     catch (Exception ex) { observer.OnError(ex); }
                     finally
                     {
-                        camera.ExecuteCommand("AcquisitionStop");
-
-                        for (int i = 0; i < allocatedFrameCount; i++)
-                        {
-                            camera.ReleaseFrameBuffer(buffers[i]);
-                        }
-
-                        //if (frameConvert != null)
-                        //{
-                        //    camera.ReleaseFrameBuffer(frameConvert);
-                        //}
-
-                        camera.CloseStream();
-                        camera.Close();
+                        CloseCameraStream(camera, buffers);
                     }
                 },
                 cancellationToken,
