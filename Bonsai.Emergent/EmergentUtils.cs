@@ -9,7 +9,7 @@ namespace Bonsai.Emergent
 {
     public static class EmergentUtils
     {
-        public static Dictionary<string, CEmergentFrameDotNet.EPixelFormat> dictPixelFormat = new Dictionary<string, CEmergentFrameDotNet.EPixelFormat> { 
+        public static Dictionary<string, CEmergentFrameDotNet.EPixelFormat> dictPixelFormat { get; private set; } = new Dictionary<string, CEmergentFrameDotNet.EPixelFormat> { 
             {"Mono8", CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO8},
             {"Mono10", CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO10},
             {"Mono10Packed", CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO10_PACKED},
