@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.0-dev0+b8ece22df2d0669bcc0e1e2661acb77b831194c4"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:p1="clr-namespace:Bonsai.Emergent;assembly=Bonsai.Emergent"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:EmergentCapture">
+          <p1:SerialNumber>2008594</p1:SerialNumber>
+          <p1:PixelFormat>EGVSP_PIX_MONO8</p1:PixelFormat>
+        </Combinator>
+      </Expression>
+    </Nodes>
+    <Edges />
+  </Workflow>
+</WorkflowBuilder>

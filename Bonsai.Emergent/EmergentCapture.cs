@@ -7,10 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Bonsai.Reactive;
 using Emergent;
+using OpenCV.Net;
 
 namespace Bonsai.Emergent
 {
-    public class EmergentCapture : Source<CEmergentFrameDotNet>
+    public class EmergentCapture : Source<IplImage>
     {
         //public int Index { get; set; }
 
@@ -40,9 +41,9 @@ namespace Bonsai.Emergent
             camera.Close();
         }
 
-        public override IObservable<CEmergentFrameDotNet> Generate()
+        public override IObservable<IplImage> Generate()
         {
-            return Observable.Create<CEmergentFrameDotNet>((observer, cancellationToken) =>
+            return Observable.Create<IplImage>((observer, cancellationToken) =>
             {
                 return Task.Factory.StartNew(() => {
                     // Configuration - open camera
@@ -103,17 +104,18 @@ namespace Bonsai.Emergent
 
                             var frameTemp = new CEmergentFrameDotNet();
 
-                            var result = camera.WaitforFrame(frameTemp, -1);
-                            Console.WriteLine(result);
-
                             while (!cancellationToken.IsCancellationRequested)
                             {
-                                //var result = camera.WaitforFrame(frameTemp, -1);
-                                //if (result == EmergentErrorsDotNet.EVT_SUCCESS)
-                                //{
-                                //    observer.OnNext(frameTemp);
-                                //}
-                                //camera.QueueFrameBuffer(frameTemp);
+                                var result = camera.WaitforFrame(frameTemp, -1);
+                                if (result == EmergentErrorsDotNet.EVT_SUCCESS)
+                                {
+                                    // Conversion
+                                    var output = new IplImage(new Size((int)wMax, (int)hMax), IplDepth.U8, 1, frameTemp.DataPtr);
+
+                                    observer.OnNext(output);
+                                }
+                                Console.WriteLine(result);
+                                camera.QueueFrameBuffer(frameTemp);
                             };
                         }
                     }
