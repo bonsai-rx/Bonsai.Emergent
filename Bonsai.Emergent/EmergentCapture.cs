@@ -17,6 +17,17 @@ namespace Bonsai.Emergent
         [TypeConverter(typeof(CameraIdConverter))]
         public string SerialNumber { get; set; }
 
+        public CEmergentFrameDotNet.EPixelFormat PixelFormat { get; set; }
+
+        void CloseCameraStream(CEmergentCameraDotNet camera)
+        {
+            Console.WriteLine("Attempting close camera");
+            camera.ExecuteCommand("AcquisitionStop");
+
+            camera.CloseStream();
+            camera.Close();
+        }
+
         public override IObservable<CEmergentFrameDotNet> Generate()
         {
             return Observable.Create<CEmergentFrameDotNet>((observer, cancellationToken) =>
@@ -53,7 +64,7 @@ namespace Bonsai.Emergent
                     // Acqusition loop
                     try
                     {
-                        using (var cancellation = cancellationToken.Register(() => { camera.ExecuteCommand("AcquisitionStop"); }))
+                        using (var cancellation = cancellationToken.Register(() => { CloseCameraStream(camera); }))
                         {
                             camera.OpenStream();
 
@@ -61,7 +72,7 @@ namespace Bonsai.Emergent
                             for (int i = 0; i < allocatedFrameCount; i++)
                             {
                                 buffers[i] = new CEmergentFrameDotNet();
-                                buffers[i].PixelFormat = CEmergentFrameDotNet.EPixelFormat.EUNPACK_PIX_MONO8;
+                                buffers[i].PixelFormat = CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO8;
                                 buffers[i].Width = wMax;
                                 buffers[i].Height = hMax;
 
@@ -78,6 +89,10 @@ namespace Bonsai.Emergent
                             camera.ExecuteCommand("AcquisitionStart");
 
                             var frameTemp = new CEmergentFrameDotNet();
+
+                            var result = camera.WaitforFrame(frameTemp, -1);
+                            Console.WriteLine(result);
+
                             while (!cancellationToken.IsCancellationRequested)
                             {
                                 //var result = camera.WaitforFrame(frameTemp, -1);
