@@ -15,7 +15,7 @@ namespace Bonsai.Emergent
     {
         //public int Index { get; set; }
 
-        [TypeConverter(typeof(CameraIdConverter))]
+        [TypeConverter(typeof(SerialNumberConverter))]
         public string SerialNumber { get; set; }
 
         public CEmergentFrameDotNet.EPixelFormat PixelFormat { get; set; } = CEmergentFrameDotNet.EPixelFormat.EGVSP_PIX_MONO8;

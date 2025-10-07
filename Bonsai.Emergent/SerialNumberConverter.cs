@@ -8,7 +8,7 @@ using Emergent;
 
 namespace Bonsai.Emergent
 {
-    public class SerialNumberConverter : StringConverter
+    internal class SerialNumberConverter : StringConverter
     {
         public override bool GetStandardValuesSupported(ITypeDescriptorContext context)
         {
