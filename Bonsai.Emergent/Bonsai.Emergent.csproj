@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <Reference Include="EmergentCameraDotNet">
-      <HintPath>..\..\..\..\..\..\..\Program Files\EVT\eSDK\bin\EmergentCameraDotNet.dll</HintPath>
+      <HintPath>$(EMERGENT_DIR)\eSDK\bin\EmergentCameraDotNet.dll</HintPath>
     </Reference>
   </ItemGroup>
 
