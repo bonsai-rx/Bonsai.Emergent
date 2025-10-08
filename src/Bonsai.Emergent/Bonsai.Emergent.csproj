@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>A package for the Bonsai visual programming language.</Description>
+    <Description>Bonsai Library containing modules for acquiring images from Emergent Vision cameras. eSDK version 2.59.0.1 is required.</Description>
     <TargetFramework>net481</TargetFramework>
   </PropertyGroup>
 
