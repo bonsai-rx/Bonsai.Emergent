@@ -18,6 +18,7 @@ namespace Bonsai.Emergent
     {
         /// <summary>
         /// Gets or sets the serial number of the camera from which to acquire images.
+        /// If no serial number is specified, the first detected camera will be used.
         /// </summary>
         [TypeConverter(typeof(SerialNumberConverter))]
         [Description("The serial number of the camera from which to acquire images.")]
@@ -49,11 +50,6 @@ namespace Bonsai.Emergent
             {
                 var pixelFormat = PixelFormat;
                 var serialNumber = SerialNumber;
-                if (string.IsNullOrEmpty(serialNumber))
-                {
-                    throw new InvalidOperationException("The serial number of the camera must be specified.");
-                }
-
                 var maxBufferLength = MaxBufferLength;
                 if (maxBufferLength <= 0)
                 {
@@ -69,13 +65,14 @@ namespace Bonsai.Emergent
                         var deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
                         CEmergentCameraDotNet.ListDevices(deviceInfoList);
 
-                        var cameraInfo = deviceInfoList.FirstOrDefault(device => device.SerialNumber == serialNumber)
-                            ?? throw new InvalidOperationException("No device with the specified serial number was found.");
+                        var cameraInfo = (!string.IsNullOrEmpty(serialNumber)
+                            ? deviceInfoList.FirstOrDefault(device => device.SerialNumber == serialNumber)
+                            : deviceInfoList.FirstOrDefault())
+                            ?? throw new InvalidOperationException("No Emergent camera with the specified serial number was found.");
 
                         camera = new CEmergentCameraDotNet();
                         camera.Open(cameraInfo);
 
-                        // Configuration - camera settings
                         camera.SetEnumByString("PixelFormat", Enum.GetName(typeof(PixelFormat), pixelFormat));
                         var pixelFormatS = camera.GetEnum("PixelFormat");
                         pixelFormat = (PixelFormat)Enum.Parse(typeof(PixelFormat), pixelFormatS);
@@ -111,7 +108,6 @@ namespace Bonsai.Emergent
                             var result = camera.WaitforFrame(frameTemp, -1);
                             if (result == EmergentErrorsDotNet.EVT_SUCCESS)
                             {
-                                // Conversion
                                 var image = new IplImage(new Size((int)wMax, (int)hMax), IplDepth.U8, 1, frameTemp.DataPtr);
                                 var metadata = new ImageMetadata(frameTemp);
                                 observer.OnNext(new EmergentDataFrame(image, metadata));
