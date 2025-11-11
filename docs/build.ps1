@@ -8,7 +8,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 Push-Location $PSScriptRoot
 try {
     $libPaths = @()
-    $libPaths += Get-ChildItem "..\artifacts\bin\*\release_net4*" -Directory | Select-Object -Expand FullName
+    $libPaths += Get-ChildItem "..\artifacts\bin\*\release_*" -Directory | Select-Object -Expand FullName
     $libPaths += "..\artifacts\package\release"
 
     ./export-images.ps1 $libPaths
