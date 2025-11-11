@@ -14,7 +14,7 @@ namespace Bonsai.Emergent
 
         public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
         {
-            List<CGigEVisionDeviceInfoDotNet> deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
+            var deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
             CEmergentCameraDotNet.ListDevices(deviceInfoList);
 
             return new StandardValuesCollection(deviceInfoList.Select(x => x.SerialNumber).ToList());

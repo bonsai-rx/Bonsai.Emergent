@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Emergent;
+using OpenCV.Net;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Emergent;
-using OpenCV.Net;
 
 namespace Bonsai.Emergent
 {
@@ -13,132 +13,133 @@ namespace Bonsai.Emergent
     /// Represents an operator that generates a sequence of images acquired from
     /// the specified Emergent Vision camera.
     /// </summary>
-    public class EmergentCapture : Source<IplImage>
+    [Description("Generates a sequence of images acquired from the specified Emergent Vision camera.")]
+    public class EmergentCapture : Source<EmergentDataFrame>
     {
-        //public int Index { get; set; }
-
         /// <summary>
         /// Gets or sets the serial number of the camera from which to acquire images.
         /// </summary>
         [TypeConverter(typeof(SerialNumberConverter))]
+        [Description("The serial number of the camera from which to acquire images.")]
         public string SerialNumber { get; set; }
 
         /// <summary>
         /// Gets or sets the pixel format for acquired images.
         /// </summary>
+        [Description("The pixel format for acquired images.")]
         public PixelFormat PixelFormat { get; set; } = PixelFormat.Mono8;
 
-        void CloseCameraStream(CEmergentCameraDotNet camera)
-        {
-            camera.ExecuteCommand("AcquisitionStop");
-
-            camera.CloseStream();
-            camera.Close();
-        }
-
-        void CloseCameraStream(CEmergentCameraDotNet camera, CEmergentFrameDotNet[] buffer)
-        {
-            camera.ExecuteCommand("AcquisitionStop");
-
-            for (int i = 0; i < buffer.Length; i++)
-            {
-                camera.ReleaseFrameBuffer(buffer[i]);
-            }
-
-            camera.CloseStream();
-            camera.Close();
-        }
+        /// <summary>
+        /// Gets or sets the maximum number of preallocated frame buffers.
+        /// </summary>
+        [Description("The maximum number of preallocated frame buffers.")]
+        public int MaxBufferLength { get; set; } = 30;
 
         /// <summary>
-        /// Generates an observable sequence of images acquired from the specified
-        /// Emergent Vision camera.
+        /// Generates an observable sequence of decoded video frame data and metadata
+        /// acquired from the specified Emergent Vision camera.
         /// </summary>
         /// <returns>
-        /// A sequence of <see cref="IplImage"/> objects representing each image
-        /// frame acquired from the camera.
+        /// A sequence of <see cref="EmergentDataFrame"/> objects representing each
+        /// decoded video frame data and metadata acquired from the camera.
         /// </returns>
-        public override IObservable<IplImage> Generate()
+        public override IObservable<EmergentDataFrame> Generate()
         {
-            return Observable.Create<IplImage>((observer, cancellationToken) =>
+            return Observable.Create<EmergentDataFrame>((observer, cancellationToken) =>
             {
-                return Task.Factory.StartNew(() => {
-                    // Configuration - open camera
-                    List<CGigEVisionDeviceInfoDotNet> deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
-                    CEmergentCameraDotNet.ListDevices(deviceInfoList);
+                var pixelFormat = PixelFormat;
+                var serialNumber = SerialNumber;
+                if (string.IsNullOrEmpty(serialNumber))
+                {
+                    throw new InvalidOperationException("The serial number of the camera must be specified.");
+                }
 
-                    var camera = new CEmergentCameraDotNet();
+                var maxBufferLength = MaxBufferLength;
+                if (maxBufferLength <= 0)
+                {
+                    throw new InvalidOperationException("At least one preallocated frame buffer must be used.");
+                }
 
+                return Task.Factory.StartNew(() =>
+                {
+                    CEmergentCameraDotNet camera = null;
+                    CEmergentFrameDotNet[] frameBuffers = null;
                     try
                     {
-                        Console.WriteLine("Attempting open camera");
-                        camera.Open(deviceInfoList.Where(x => x.SerialNumber == SerialNumber).FirstOrDefault());
-                        Console.WriteLine("Opened camera");
-                    }
-                    catch (Exception ex) { observer.OnError(ex); }
+                        var deviceInfoList = new List<CGigEVisionDeviceInfoDotNet>();
+                        CEmergentCameraDotNet.ListDevices(deviceInfoList);
 
-                    // Configuration - camera settings
-                    camera.SetEnumByString("PixelFormat", Enum.GetName(typeof(PixelFormat), PixelFormat));
-                    string pixelFormatS = camera.GetEnum("PixelFormat");
-                    Console.WriteLine("Pixel format: {0}", pixelFormatS);
+                        var cameraInfo = deviceInfoList.FirstOrDefault(device => device.SerialNumber == serialNumber)
+                            ?? throw new InvalidOperationException("No device with the specified serial number was found.");
 
-                    var wMax = camera.GetUInt32Max("Width");
-                    var hMax = camera.GetUInt32Max("Height");
-                    Console.WriteLine("Resolution: {0} x {1}", wMax, hMax);
+                        camera = new CEmergentCameraDotNet();
+                        camera.Open(cameraInfo);
 
-                    var fMax = camera.GetUInt32Max("FrameRate");
-                    Console.WriteLine("FrameRate Max: \t\t{0}", fMax);
+                        // Configuration - camera settings
+                        camera.SetEnumByString("PixelFormat", Enum.GetName(typeof(PixelFormat), pixelFormat));
+                        var pixelFormatS = camera.GetEnum("PixelFormat");
+                        pixelFormat = (PixelFormat)Enum.Parse(typeof(PixelFormat), pixelFormatS);
+                        var wMax = camera.GetUInt32Max("Width");
+                        var hMax = camera.GetUInt32Max("Height");
 
-                    const int allocatedFrameCount = 30;
-                    var buffers = new CEmergentFrameDotNet[allocatedFrameCount];
-
-                    // Acqusition loop
-                    try
-                    {
-                        using (var cancellation = cancellationToken.Register(() => { CloseCameraStream(camera); }))
+                        camera.OpenStream();
+                        var allocatedFrames = new List<CEmergentFrameDotNet>(maxBufferLength);
+                        for (int i = 0; i < maxBufferLength; i++)
                         {
-                            camera.OpenStream();
-
-                            // set up acquisition buffer
-                            for (int i = 0; i < allocatedFrameCount; i++)
+                            var frame = new CEmergentFrameDotNet
                             {
-                                buffers[i] = new CEmergentFrameDotNet();
-                                buffers[i].PixelFormat = (CEmergentFrameDotNet.EPixelFormat)PixelFormat;
-                                buffers[i].Width = wMax;
-                                buffers[i].Height = hMax;
+                                PixelFormat = (CEmergentFrameDotNet.EPixelFormat)pixelFormat,
+                                Width = wMax,
+                                Height = hMax
+                            };
 
-                                if (camera.AllocateFrameBuffer(buffers[i], CEmergentFrameDotNet.EFRAME_BUFFER_TYPE.EEVT_FRAME_BUFFER_ZERO_COPY) != EmergentErrorsDotNet.EVT_SUCCESS)
+                            if (camera.AllocateFrameBuffer(frame, CEmergentFrameDotNet.EFRAME_BUFFER_TYPE.EEVT_FRAME_BUFFER_ZERO_COPY) != EmergentErrorsDotNet.EVT_SUCCESS)
+                                break;
+
+                            if (camera.QueueFrameBuffer(frame) != EmergentErrorsDotNet.EVT_SUCCESS)
+                                break;
+
+                            allocatedFrames.Add(frame);
+                        }
+
+                        frameBuffers = allocatedFrames.ToArray();
+                        camera.ExecuteCommand("AcquisitionStart");
+
+                        var frameTemp = new CEmergentFrameDotNet();
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            var result = camera.WaitforFrame(frameTemp, -1);
+                            if (result == EmergentErrorsDotNet.EVT_SUCCESS)
+                            {
+                                // Conversion
+                                var image = new IplImage(new Size((int)wMax, (int)hMax), IplDepth.U8, 1, frameTemp.DataPtr);
+                                var metadata = new ImageMetadata(frameTemp);
+                                observer.OnNext(new EmergentDataFrame(image, metadata));
+                            }
+                            camera.QueueFrameBuffer(frameTemp);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        observer.OnError(ex);
+                        throw;
+                    }
+                    finally
+                    {
+                        if (camera is not null)
+                        {
+                            camera.ExecuteCommand("AcquisitionStop");
+                            if (frameBuffers is not null)
+                            {
+                                for (int i = 0; i < frameBuffers.Length; i++)
                                 {
-                                    break;
-                                }
-                                if (camera.QueueFrameBuffer(buffers[i]) != EmergentErrorsDotNet.EVT_SUCCESS)
-                                {
-                                    break;
+                                    camera.ReleaseFrameBuffer(frameBuffers[i]);
                                 }
                             }
 
-                            camera.ExecuteCommand("AcquisitionStart");
-
-                            var frameTemp = new CEmergentFrameDotNet();
-
-                            while (!cancellationToken.IsCancellationRequested)
-                            {
-                                var result = camera.WaitforFrame(frameTemp, -1);
-                                if (result == EmergentErrorsDotNet.EVT_SUCCESS)
-                                {
-                                    // Conversion
-                                    var output = new IplImage(new Size((int)wMax, (int)hMax), IplDepth.U8, 1, frameTemp.DataPtr);
-
-                                    observer.OnNext(output);
-                                }
-                                Console.WriteLine(result);
-                                camera.QueueFrameBuffer(frameTemp);
-                            };
+                            camera.CloseStream();
+                            camera.Close();
                         }
-                    }
-                    catch (Exception ex) { observer.OnError(ex); }
-                    finally
-                    {
-                        CloseCameraStream(camera, buffers);
                     }
                 },
                 cancellationToken,
