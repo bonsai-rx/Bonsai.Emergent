@@ -17,3 +17,41 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+Emergent eSDK Component attribution and disclaimer
+
+This package contains a proprietary component (EmergentCameraDotNet.dll) from
+the Emergent eSDK, redistributed under express written permission from Emergent
+Vision Technologies Inc ("EVT").
+
+Important Notice:
+
+Ownership: The file EmergentCameraDotNet.dll is proprietary software owned by
+Emergent Vision Technologies Inc. All rights, title, and interest in this
+component remain with EVT.
+
+Limited Permission: This component is redistributed solely for camera interface
+functionality and to support interoperability with the Bonsai programming
+language under specific permission granted by EVT.
+
+User Obligations: Users requiring full SDK functionality must obtain proper
+licensing directly from Emergent Vision Technologies at
+https://emergentvisiontec.com/.
+
+No Warranty: The EVT component is provided "as is" without warranty of any
+kind. EVT disclaims all warranties, express or implied, including but not
+limited to merchantability and fitness for a particular purpose.
+
+Limitation of Liability: Neither EVT nor the package authors shall be liable
+for any damages arising from the use of this component, including but not
+limited to direct, indirect, incidental, or consequential damages.
+
+Compliance: Users must comply with all applicable terms of the EVT End User
+License Agreement for any direct use of EVT software or additional components.
+
+For full Emergent eSDK access and licensing, please visit:
+https://emergentvisiontec.com/software/esdk/
+
+All other components of this package are licensed under the MIT License.
