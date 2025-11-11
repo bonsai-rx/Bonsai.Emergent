@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup Condition="'$(Platform.ToLower())' == 'x64' Or '$(Platform.ToLower())' == 'anycpu'">
+    <Reference Include="EmergentCameraDotNet">
+      <HintPath>$(MSBuildThisFileDirectory)bin\x64\EmergentCameraDotNet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

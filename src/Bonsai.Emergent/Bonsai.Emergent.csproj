@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Bonsai Library containing modules for acquiring images from Emergent Vision cameras. eSDK version 2.62.02 is required.</Description>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <TargetFramework>net481</TargetFramework>
   </PropertyGroup>
 
@@ -11,7 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\Externals\EmergentCameraDotNet.dll" PackagePath="lib\net481" />
+    <Content Include="Bonsai.Emergent.props" PackagePath="build\net481" />
+    <Content Include="..\Externals\EmergentCameraDotNet.dll" PackagePath="build\net481\bin\x64" />
     <Reference Include="EmergentCameraDotNet">
       <HintPath>..\Externals\EmergentCameraDotNet.dll</HintPath>
     </Reference>
